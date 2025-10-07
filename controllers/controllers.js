@@ -6,14 +6,20 @@ const appContainer = document.getElementById('app-container');
 const views = {
     login: document.getElementById('view-login'),
     register: document.getElementById('view-register'),
-    dashboard: document.getElementById('view-dashboard')
+    dashboard: document.getElementById('view-client-dashboard'), // Dashboard del cliente
+    adminDashboard: document.getElementById('view-admin-dashboard'), // Dashboard principal del admin
+    adminClients: document.getElementById('view-admin-clients'), // CRUD de clientes
+    adminPets: document.getElementById('view-admin-pets') // CRUD de mascotas (Admin)
 };
 
 const formLogin = document.getElementById('form-login');
 const formRegister = document.getElementById('form-register');
 const formAddPet = document.getElementById('form-add-pet');
 const navLogout = document.getElementById('nav-logout');
-const welcomeMessage = document.getElementById('welcome-message');
+
+const welcomeClientMessage = document.getElementById('welcome-client-message');
+const welcomeAdminMessage = document.getElementById('welcome-admin-message');
+
 const loginMessage = document.getElementById('login-message');
 const registerMessage = document.getElementById('register-message');
 
@@ -23,11 +29,18 @@ const linkToLogin = document.getElementById('link-to-login');
 // Elementos de la vista Cliente
 const petListContainer = document.getElementById('pets-list-container');
 const petAddMessage = document.getElementById('pet-add-message');
-const clientViewContent = document.getElementById('client-view-content');
 
-// Elementos de la vista Administrador (NUEVOS)
-const adminViewContent = document.getElementById('admin-view-content');
+// Elementos de la vista Administrador
 const clientsListContainer = document.getElementById('clients-list-container');
+const adminClientMessage = document.getElementById('admin-client-message'); // Mensajes de CRUD de clientes
+const allPetsListContainer = document.getElementById('all-pets-list-container'); // NUEVO
+const adminPetMessage = document.getElementById('admin-pet-message'); // NUEVO
+
+// Botones de navegación de Admin
+const navToClientsBtn = document.getElementById('nav-to-clients');
+const navToAdminPetsBtn = document.getElementById('nav-to-admin-pets');
+const backToAdminClientsBtn = document.getElementById('back-to-admin-dashboard-from-clients');
+const backToAdminPetsBtn = document.getElementById('back-to-admin-dashboard-from-pets');
 
 
 // Variable para guardar listas en memoria
@@ -46,6 +59,7 @@ function createModalOverlay() {
             <h3 class="text-2xl font-bold text-indigo-700 mb-4">Editar Mascota</h3>
             <form id="form-edit-pet" class="space-y-4">
                 <input type="hidden" id="edit-pet-id" name="id">
+                <p id="owner-info" class="text-sm text-gray-500"></p>
                 <input type="text" name="nombre" placeholder="Nombre de la Mascota" required 
                        class="w-full p-2 border rounded-md focus:ring-indigo-500 focus:border-indigo-500">
                 <input type="text" name="especie" placeholder="Especie" required 
@@ -80,7 +94,7 @@ function createModalOverlay() {
     return overlay;
 }
 
-/** Crea y adjunta el modal de edición de Cliente al cuerpo del documento (NUEVO) */
+/** Crea y adjunta el modal de edición de Cliente al cuerpo del documento */
 function createClientModalOverlay() {
     const overlay = document.createElement('div');
     overlay.id = 'edit-client-modal-overlay';
@@ -133,6 +147,7 @@ const modalOverlay = createModalOverlay();
 const formEditPet = modalOverlay.querySelector('#form-edit-pet');
 const editPetId = modalOverlay.querySelector('#edit-pet-id');
 const editMessage = modalOverlay.querySelector('#edit-message');
+const ownerInfo = modalOverlay.querySelector('#owner-info'); // Info del dueño
 
 // Inicialización de Modales (Clientes Admin)
 const clientModalOverlay = createClientModalOverlay();
@@ -143,7 +158,7 @@ const clientEditMessage = clientModalOverlay.querySelector('#client-edit-message
 
 /**
  * Muestra solo la vista especificada y oculta las demás.
- * @param {string} viewName Nombre de la vista ('login', 'register', 'dashboard').
+ * @param {string} viewName Nombre de la vista ('login', 'register', 'dashboard', 'adminDashboard', 'adminClients', 'adminPets').
  */
 function showView(viewName) {
     Object.keys(views).forEach(key => {
@@ -155,7 +170,7 @@ function showView(viewName) {
     });
 
     // Controlar visibilidad del botón de Logout
-    if (viewName === 'dashboard') {
+    if (viewName === 'dashboard' || viewName.startsWith('admin')) {
         navLogout.classList.remove('hidden');
     } else {
         navLogout.classList.add('hidden');
@@ -177,11 +192,10 @@ function displayMessage(element, message, type) {
     }, 3000);
 }
 
-// --- Lógica del Dashboard y Mascota ---
+// --- Lógica de CRUD de Mascotas (Reutilizable) ---
 
 /**
  * Abre el modal de edición de Mascota y precarga los datos.
- * @param {number} petId ID de la mascota a editar.
  */
 function openEditModal(petId) {
     const pet = currentPets.find(p => p.id == petId);
@@ -198,6 +212,14 @@ function openEditModal(petId) {
     formEditPet.querySelector('input[name="foto"]').value = pet.foto;
     formEditPet.querySelector('textarea[name="historia_clinica"]').value = pet.historia_clinica;
     
+    // Si estamos en la vista de administrador, mostramos la info del dueño
+    const user = VeterinariaAPI.getSession();
+    if (user && user.role === 'admin' && pet.cliente_nombre) {
+        ownerInfo.textContent = `Dueño: ${pet.cliente_nombre} (ID: ${pet.clientes_id})`;
+    } else {
+        ownerInfo.textContent = '';
+    }
+
     // Limpiar mensaje previo
     editMessage.textContent = '';
 
@@ -207,8 +229,7 @@ function openEditModal(petId) {
 
 
 /**
- * Renderiza la lista de mascotas en el contenedor.
- * @param {Array<Object>} pets Array de objetos mascota.
+ * Renderiza la lista de mascotas para el cliente.
  */
 function renderPets(pets) {
     currentPets = pets; // Guardamos la lista actual
@@ -249,30 +270,89 @@ function renderPets(pets) {
         petListContainer.appendChild(petCard);
     });
     
-    // Añadir listeners a los nuevos botones
-    document.querySelectorAll('.edit-btn').forEach(button => {
-        button.addEventListener('click', (e) => {
-            openEditModal(e.currentTarget.dataset.id);
-        });
-    });
-    document.querySelectorAll('.delete-btn').forEach(button => {
-        button.addEventListener('click', (e) => {
-            handleDeletePet(e.currentTarget.dataset.id, e.currentTarget.dataset.name);
-        });
-    });
+    attachPetActionListeners();
 }
 
 /**
- * Carga y muestra la lista de mascotas para el usuario actual.
+ * Renderiza la lista de todas las mascotas para el administrador. (NUEVO)
  */
-async function loadPets() {
+function renderAdminPets(pets) {
+    currentPets = pets; // Guardamos la lista actual
+    allPetsListContainer.innerHTML = '';
+    
+    if (!pets || pets.length === 0) {
+        allPetsListContainer.innerHTML = '<p class="text-gray-500 text-center py-8">No hay mascotas registradas en la clínica.</p>';
+        return;
+    }
+
+    pets.forEach(pet => {
+        const petCard = document.createElement('div');
+        // El color cambia ligeramente para indicar que es una vista de gestión general (Admin)
+        petCard.className = 'bg-white border border-gray-300 p-4 rounded-xl shadow-md flex justify-between items-center space-x-4';
+        
+        const petImage = pet.foto && pet.foto !== 'default_pet.png' 
+            ? `<img src="${pet.foto}" onerror="this.onerror=null; this.src='https://placehold.co/48x48/374151/ffffff?text=🐶';" alt="${pet.nombre}" class="w-12 h-12 object-cover rounded-full">`
+            : `<div class="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center text-gray-600 text-2xl">🐶</div>`;
+
+        petCard.innerHTML = `
+            <div class="flex items-center space-x-4 flex-grow">
+                ${petImage}
+                <div>
+                    <h4 class="text-lg font-bold text-gray-800">${pet.nombre} (${pet.especie})</h4>
+                    <p class="text-sm text-gray-600">Raza: ${pet.raza}</p>
+                    <p class="text-xs text-gray-500 mt-1">Dueño: ${pet.cliente_nombre || 'N/A'} (ID: ${pet.clientes_id})</p>
+                </div>
+            </div>
+            <div class="flex space-x-2 flex-shrink-0">
+                <button data-id="${pet.id}" class="edit-btn bg-yellow-500 text-white text-sm px-3 py-1 rounded-full hover:bg-yellow-600 transition duration-300">
+                    Editar
+                </button>
+                <button data-id="${pet.id}" data-name="${pet.nombre}" class="delete-btn bg-red-500 text-white text-sm px-3 py-1 rounded-full hover:bg-red-600 transition duration-300">
+                    Eliminar
+                </button>
+            </div>
+        `;
+        allPetsListContainer.appendChild(petCard);
+    });
+    
+    attachPetActionListeners(); // Attach listeners for admin buttons
+}
+
+/**
+ * Agrega listeners de edición y eliminación a los botones de mascotas.
+ */
+function attachPetActionListeners() {
+    document.querySelectorAll('.edit-btn').forEach(button => {
+        // Aseguramos que solo se añada una vez por botón
+        if (!button.dataset.listenerAttached) {
+            button.addEventListener('click', (e) => {
+                openEditModal(e.currentTarget.dataset.id);
+            });
+            button.dataset.listenerAttached = true;
+        }
+    });
+    document.querySelectorAll('.delete-btn').forEach(button => {
+        if (!button.dataset.listenerAttached) {
+            button.addEventListener('click', (e) => {
+                handleDeletePet(e.currentTarget.dataset.id, e.currentTarget.dataset.name);
+            });
+            button.dataset.listenerAttached = true;
+        }
+    });
+}
+
+
+/**
+ * Carga y muestra la lista de mascotas para el usuario actual (Solo Clientes).
+ */
+async function loadClientPets() {
     petListContainer.innerHTML = '<p class="text-center text-indigo-600 py-8">Cargando...</p>';
     const user = VeterinariaAPI.getSession();
     if (!user) {
         return;
     }
 
-    const result = await VeterinariaAPI.listPets(user.id);
+    const result = await VeterinariaAPI.listPets(user.id); // Llama a listPets con ID de cliente
     if (result.success) {
         renderPets(result.pets);
     } else {
@@ -280,41 +360,29 @@ async function loadPets() {
     }
 }
 
-// --- Lógica del Dashboard Admin (NUEVO) ---
-
 /**
- * Abre el modal de edición de Cliente y precarga los datos.
- * @param {number} clientId ID del cliente a editar.
+ * Carga y muestra la lista de TODAS las mascotas (Solo Admin). (NUEVO)
  */
-function openClientEditModal(clientId) {
-    const client = currentClients.find(c => c.id == clientId);
-    if (!client) {
-        displayMessage(clientEditMessage, 'Cliente no encontrado.', 'error');
-        return;
+async function loadAllPets() {
+    allPetsListContainer.innerHTML = '<p class="text-center text-indigo-600 py-8">Cargando todas las mascotas de la clínica...</p>';
+
+    // Llama al endpoint que no requiere cliente_id y trae info de cliente_nombre (asumido en la API)
+    const result = await VeterinariaAPI.listAllPets(); 
+    
+    if (result.success) {
+        renderAdminPets(result.pets);
+    } else {
+        allPetsListContainer.innerHTML = `<p class="text-red-500 text-center py-8">Error al cargar mascotas: ${result.message}</p>`;
     }
-
-    // Precargar datos en el formulario del modal
-    editClientId.value = client.id;
-    formEditClient.querySelector('input[name="nombre"]').value = client.nombre;
-    formEditClient.querySelector('input[name="apellido"]').value = client.apellido;
-    formEditClient.querySelector('input[name="documento"]').value = client.documento;
-    formEditClient.querySelector('input[name="telefono"]').value = client.telefono;
-    formEditClient.querySelector('input[name="email"]').value = client.email;
-    formEditClient.querySelector('input[name="rol"]').value = client.rol;
-    formEditClient.querySelector('input[name="password"]').value = ''; // La contraseña nunca se precarga
-
-    // Limpiar mensaje previo
-    clientEditMessage.textContent = '';
-
-    // Mostrar modal
-    clientModalOverlay.classList.remove('hidden');
 }
+
+// --- Lógica del Dashboard Admin ---
 
 /**
  * Renderiza la lista de clientes en el contenedor (solo Admin).
- * @param {Array<Object>} clients Array de objetos cliente.
  */
 function renderClientList(clients) {
+    // ... (El código de renderClientList sigue siendo el mismo)
     currentClients = clients; // Guardamos la lista actual
     clientsListContainer.innerHTML = '';
     
@@ -382,16 +450,15 @@ async function loadClients() {
  */
 function renderDashboard() {
     const user = VeterinariaAPI.getSession();
-    if (!user) return; // Esto no debería pasar si llegamos aquí
+    if (!user) return; 
 
     if (user.role === 'admin') {
-        clientViewContent.classList.add('hidden');
-        adminViewContent.classList.remove('hidden');
-        loadClients();
+        welcomeAdminMessage.textContent = `Panel de Administración, ${user.nombre}`;
+        showView('adminDashboard'); // Mostrar el menú del administrador
     } else {
-        clientViewContent.classList.remove('hidden');
-        adminViewContent.classList.add('hidden');
-        loadPets();
+        welcomeClientMessage.textContent = `Bienvenido(a) ${user.nombre}.`;
+        showView('dashboard'); // Mostrar la gestión de mascotas del cliente
+        loadClientPets(); // Carga las mascotas del cliente
     }
 }
 
@@ -447,7 +514,7 @@ async function handleAddPet(event) {
     petAddMessage.textContent = 'Registrando mascota...';
     
     const user = VeterinariaAPI.getSession();
-    if (!user || user.role === 'admin') { // Proteger contra admin intentando agregar
+    if (!user || user.role === 'admin') { 
         displayMessage(petAddMessage, 'Error: Permiso denegado.', 'error');
         return;
     }
@@ -463,7 +530,7 @@ async function handleAddPet(event) {
     if (result.success) {
         displayMessage(petAddMessage, 'Mascota agregada correctamente.', 'success');
         formAddPet.reset();
-        loadPets(); // Recargar la lista de mascotas
+        loadClientPets(); // Recargar la lista de mascotas del cliente
     } else {
         displayMessage(petAddMessage, result.message, 'error');
     }
@@ -483,7 +550,17 @@ async function handleEditPet(event) {
 
     if (result.success) {
         displayMessage(editMessage, 'Cambios guardados correctamente.', 'success');
-        loadPets(); // Recargar la lista
+        
+        // Determinar qué lista recargar basado en la vista actual
+        const user = VeterinariaAPI.getSession();
+        if (user.role === 'admin') {
+            loadAllPets(); // Si es admin, recargar la lista general
+            displayMessage(adminPetMessage, 'Mascota actualizada (Admin).', 'success');
+        } else {
+            loadClientPets(); // Si es cliente, recargar su lista
+            displayMessage(petAddMessage, 'Mascota actualizada (Cliente).', 'success');
+        }
+
         setTimeout(() => modalOverlay.classList.add('hidden'), 1000);
     } else {
         displayMessage(editMessage, result.message, 'error');
@@ -498,26 +575,63 @@ async function handleDeletePet(petId, petName) {
         return;
     }
     
-    displayMessage(petAddMessage, `Eliminando a ${petName}...`, 'error');
+    // Usar el mensaje correcto basado en el rol/vista
+    const user = VeterinariaAPI.getSession();
+    const msgElement = user.role === 'admin' ? adminPetMessage : petAddMessage;
+    
+    displayMessage(msgElement, `Eliminando a ${petName}...`, 'error');
 
     const result = await VeterinariaAPI.deletePet(petId);
 
     if (result.success) {
-        displayMessage(petAddMessage, `${petName} eliminado correctamente.`, 'success');
-        loadPets(); // Recargar la lista
+        displayMessage(msgElement, `${petName} eliminado correctamente.`, 'success');
+        // Determinar qué lista recargar basado en el rol
+        if (user.role === 'admin') {
+            loadAllPets();
+        } else {
+            loadClientPets();
+        }
     } else {
-        displayMessage(petAddMessage, `Error al eliminar a ${petName}: ${result.message}`, 'error');
+        displayMessage(msgElement, `Error al eliminar a ${petName}: ${result.message}`, 'error');
     }
 }
 
 // --- Manejadores de Eventos de Cliente (CRUD de Administrador) ---
 
 /**
+ * Abre el modal de edición de Cliente y precarga los datos.
+ */
+function openClientEditModal(clientId) {
+    const client = currentClients.find(c => c.id == clientId);
+    if (!client) {
+        displayMessage(adminClientMessage, 'Cliente no encontrado.', 'error');
+        return;
+    }
+
+    // Precargar datos en el formulario del modal
+    editClientId.value = client.id;
+    formEditClient.querySelector('input[name="nombre"]').value = client.nombre;
+    formEditClient.querySelector('input[name="apellido"]').value = client.apellido;
+    formEditClient.querySelector('input[name="documento"]').value = client.documento;
+    formEditClient.querySelector('input[name="telefono"]').value = client.telefono;
+    formEditClient.querySelector('input[name="email"]').value = client.email;
+    formEditClient.querySelector('input[name="rol"]').value = client.rol;
+    formEditClient.querySelector('input[name="password"]').value = ''; // La contraseña nunca se precarga
+
+    // Limpiar mensaje previo
+    clientEditMessage.textContent = '';
+
+    // Mostrar modal
+    clientModalOverlay.classList.remove('hidden');
+}
+
+
+/**
  * Maneja el envío del formulario de Edición de Cliente.
  */
 async function handleEditClient(event) {
     event.preventDefault();
-    clientEditMessage.textContent = 'Guardando cambios...';
+    adminClientMessage.textContent = 'Guardando cambios...';
 
     const formData = new FormData(formEditClient);
     const data = Object.fromEntries(formData.entries());
@@ -525,11 +639,11 @@ async function handleEditClient(event) {
     const result = await VeterinariaAPI.updateClient(data);
 
     if (result.success) {
-        displayMessage(clientEditMessage, 'Cambios guardados correctamente.', 'success');
-        renderDashboard(); // Recargar la lista de clientes
+        displayMessage(adminClientMessage, 'Cambios guardados correctamente.', 'success');
+        loadClients(); // Recargar la lista de clientes
         setTimeout(() => clientModalOverlay.classList.add('hidden'), 1000);
     } else {
-        displayMessage(clientEditMessage, result.message, 'error');
+        displayMessage(adminClientMessage, result.message, 'error');
     }
 }
 
@@ -537,20 +651,19 @@ async function handleEditClient(event) {
  * Maneja la eliminación de un cliente.
  */
 async function handleDeleteClient(clientId, clientName) {
-    // Usamos el mensaje de edición de cliente como contenedor de mensajes de admin
     if (!confirm(`[ADMIN] ¿Estás seguro de que quieres eliminar al cliente ${clientName} (ID: ${clientId})? Esto eliminará sus datos.`)) {
         return;
     }
     
-    clientEditMessage.textContent = `Eliminando al cliente ${clientName}...`;
+    adminClientMessage.textContent = `Eliminando al cliente ${clientName}...`;
 
     const result = await VeterinariaAPI.deleteClient(clientId);
 
     if (result.success) {
-        displayMessage(clientEditMessage, `Cliente ${clientName} eliminado correctamente.`, 'success');
-        renderDashboard(); // Recargar la lista
+        displayMessage(adminClientMessage, `Cliente ${clientName} eliminado correctamente.`, 'success');
+        loadClients(); // Recargar la lista
     } else {
-        displayMessage(clientEditMessage, `Error al eliminar al cliente ${clientName}: ${result.message}`, 'error');
+        displayMessage(adminClientMessage, `Error al eliminar al cliente ${clientName}: ${result.message}`, 'error');
     }
 }
 
@@ -573,9 +686,7 @@ function initializeApp() {
 
     if (user) {
         // Usuario logueado
-        welcomeMessage.textContent = `Bienvenido(a) ${user.nombre}${user.role === 'admin' ? ' (ADMIN)' : ''}.`;
-        showView('dashboard');
-        renderDashboard(); // Usa la nueva función que distingue por rol
+        renderDashboard(); 
     } else {
         // No hay sesión
         showView('login');
@@ -589,7 +700,7 @@ formLogin.addEventListener('submit', handleLogin);
 formRegister.addEventListener('submit', handleRegister);
 navLogout.addEventListener('click', handleLogout);
 
-// Navegación
+// Navegación (Login/Register)
 linkToRegister.addEventListener('click', (e) => {
     e.preventDefault();
     showView('register');
@@ -599,12 +710,29 @@ linkToLogin.addEventListener('click', (e) => {
     showView('login');
 });
 
-// Dashboard (Mascotas CRUD)
+// Dashboard (Mascotas CRUD - Cliente/Admin)
 formAddPet.addEventListener('submit', handleAddPet);
 formEditPet.addEventListener('submit', handleEditPet); 
 
 // Dashboard (Clientes CRUD - Admin)
-formEditClient.addEventListener('submit', handleEditClient); // Listener para el formulario de edición de clientes
+formEditClient.addEventListener('submit', handleEditClient); 
+
+// Navegación de Administrador (Listeners actualizados)
+navToClientsBtn.addEventListener('click', () => {
+    showView('adminClients');
+    loadClients(); // Cargar datos al entrar a la vista de clientes
+});
+navToAdminPetsBtn.addEventListener('click', () => {
+    showView('adminPets');
+    loadAllPets(); // Cargar TODAS las mascotas al entrar a la vista de admin
+});
+backToAdminClientsBtn.addEventListener('click', () => {
+    showView('adminDashboard');
+});
+backToAdminPetsBtn.addEventListener('click', () => {
+    showView('adminDashboard');
+});
+
 
 // Iniciar la aplicación al cargar el módulo
 initializeApp();

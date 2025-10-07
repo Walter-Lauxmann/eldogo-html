@@ -58,19 +58,15 @@
             <section id="view-register" class="view hidden space-y-4">
                 <h2 class="text-3xl font-bold text-gray-800 mb-6 text-center">Registro de Cliente</h2>
                 <form id="form-register" class="max-w-lg mx-auto grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <!-- Columna 1 -->
+                    <!-- Campos de registro -->
                     <input type="text" name="nombre" placeholder="Nombre" required 
                            class="p-3 border rounded-lg focus:ring-indigo-500 focus:border-indigo-500">
                     <input type="text" name="apellido" placeholder="Apellido" required 
                            class="p-3 border rounded-lg focus:ring-indigo-500 focus:border-indigo-500">
-                    
-                    <!-- Columna 2 -->
                     <input type="text" name="documento" placeholder="DNI/Documento" required 
                            class="p-3 border rounded-lg focus:ring-indigo-500 focus:border-indigo-500">
                     <input type="text" name="telefono" placeholder="Teléfono" required 
                            class="p-3 border rounded-lg focus:ring-indigo-500 focus:border-indigo-500">
-
-                    <!-- Fila Completa -->
                     <input type="email" name="email" placeholder="Correo Electrónico" required 
                            class="p-3 border rounded-lg focus:ring-indigo-500 focus:border-indigo-500 md:col-span-2">
                     <input type="password" name="password" placeholder="Contraseña" required 
@@ -86,57 +82,90 @@
                 <div id="register-message" class="text-center mt-4 font-medium"></div>
             </section>
 
-            <!-- 3. Vista del Dashboard (Mascotas / Admin) -->
-            <section id="view-dashboard" class="view hidden">
-                <h2 id="welcome-message" class="text-2xl font-bold text-gray-800 mb-6">Bienvenido, [Cliente]</h2>
+            <!-- 3. VISTA DE CLIENTE (Gestión de Mascotas) -->
+            <section id="view-client-dashboard" class="view hidden">
+                <h2 id="welcome-client-message" class="text-2xl font-bold text-gray-800 mb-6">Bienvenido, Cliente</h2>
                 
-                <!-- VISTA DE CLIENTE NORMAL (Gestión de Mascotas) -->
-                <div id="client-view-content">
-                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                        
-                        <!-- Formulario para Agregar Mascota (Columna 1) -->
-                        <div class="lg:col-span-1 bg-gray-50 p-4 rounded-xl shadow-lg h-fit">
-                            <h3 class="text-xl font-semibold mb-4 text-indigo-700">Registrar Nueva Mascota</h3>
-                            <form id="form-add-pet" class="space-y-3">
-                                <input type="text" name="nombre" placeholder="Nombre de la Mascota" required 
-                                    class="w-full p-2 border rounded-md focus:ring-indigo-500 focus:border-indigo-500">
-                                <input type="text" name="especie" placeholder="Especie (Ej: Canino, Felino)" required 
-                                    class="w-full p-2 border rounded-md focus:ring-indigo-500 focus:border-indigo-500">
-                                <input type="text" name="raza" placeholder="Raza" required 
-                                    class="w-full p-2 border rounded-md focus:ring-indigo-500 focus:border-indigo-500">
-                                <input type="text" name="foto" placeholder="URL o Nombre de Archivo de Foto (Opcional)"
-                                    class="w-full p-2 border rounded-md focus:ring-indigo-500 focus:border-indigo-500">
-                                <textarea name="historia_clinica" placeholder="Historia Clínica Inicial (Opcional)" rows="3"
-                                    class="w-full p-2 border rounded-md focus:ring-indigo-500 focus:border-indigo-500"></textarea>
-                                
-                                <button type="submit" class="w-full bg-indigo-600 text-white font-bold p-3 rounded-lg hover:bg-indigo-700 transition duration-300 shadow-md">
-                                    Registrar Mascota
-                                </button>
-                            </form>
-                            <div id="pet-add-message" class="text-center mt-3 text-sm font-medium"></div>
-                        </div>
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    
+                    <!-- Formulario para Agregar Mascota (Columna 1) -->
+                    <div class="lg:col-span-1 bg-gray-50 p-4 rounded-xl shadow-lg h-fit">
+                        <h3 class="text-xl font-semibold mb-4 text-indigo-700">Registrar Nueva Mascota</h3>
+                        <form id="form-add-pet" class="space-y-3">
+                            <input type="text" name="nombre" placeholder="Nombre de la Mascota" required 
+                                class="w-full p-2 border rounded-md focus:ring-indigo-500 focus:border-indigo-500">
+                            <input type="text" name="especie" placeholder="Especie (Ej: Canino, Felino)" required 
+                                class="w-full p-2 border rounded-md focus:ring-indigo-500 focus:border-indigo-500">
+                            <input type="text" name="raza" placeholder="Raza" required 
+                                class="w-full p-2 border rounded-md focus:ring-indigo-500 focus:border-indigo-500">
+                            <input type="text" name="foto" placeholder="URL o Nombre de Archivo de Foto (Opcional)"
+                                class="w-full p-2 border rounded-md focus:ring-indigo-500 focus:border-indigo-500">
+                            <textarea name="historia_clinica" placeholder="Historia Clínica Inicial (Opcional)" rows="3"
+                                class="w-full p-2 border rounded-md focus:ring-indigo-500 focus:border-indigo-500"></textarea>
+                            
+                            <button type="submit" class="w-full bg-indigo-600 text-white font-bold p-3 rounded-lg hover:bg-indigo-700 transition duration-300 shadow-md">
+                                Registrar Mascota
+                            </button>
+                        </form>
+                        <div id="pet-add-message" class="text-center mt-3 text-sm font-medium"></div>
+                    </div>
 
-                        <!-- Listado de Mascotas (Columnas 2 y 3) -->
-                        <div class="lg:col-span-2">
-                            <h3 class="text-xl font-semibold mb-4 text-indigo-700">Mis Mascotas</h3>
-                            <div id="pets-list-container" class="space-y-4 overflow-y-scroll max-h-96 p-2">
-                                <!-- Aquí se insertarán las tarjetas de mascotas -->
-                                <p class="text-gray-500 text-center py-8" id="no-pets-message">Cargando mascotas...</p>
-                            </div>
+                    <!-- Listado de Mascotas (Columnas 2 y 3) -->
+                    <div class="lg:col-span-2">
+                        <h3 class="text-xl font-semibold mb-4 text-indigo-700">Mis Mascotas</h3>
+                        <div id="pets-list-container" class="space-y-4 overflow-y-scroll max-h-96 p-2">
+                            <!-- Aquí se insertarán las tarjetas de mascotas del cliente -->
+                            <p class="text-gray-500 text-center py-8" id="no-pets-message">Cargando mascotas...</p>
                         </div>
-
                     </div>
                 </div>
+            </section>
 
-                <!-- VISTA DE ADMINISTRADOR (Gestión de Clientes) -->
-                <div id="admin-view-content" class="hidden">
-                    <h3 class="text-xl font-semibold mb-4 text-red-700">Panel de Administración: Gestión de Clientes</h3>
-                    <div id="clients-list-container" class="space-y-4 overflow-y-scroll max-h-[600px] p-2 bg-white rounded-lg shadow-inner border border-red-200">
-                        <!-- Aquí se insertará la lista de clientes -->
-                        <p class="text-gray-500 text-center py-8">Cargando clientes...</p>
-                    </div>
+            <!-- 4. VISTA DE ADMINISTRADOR - DASHBOARD PRINCIPAL (Menú) -->
+            <section id="view-admin-dashboard" class="view hidden">
+                <h2 id="welcome-admin-message" class="text-3xl font-bold text-gray-800 mb-8">Panel de Administración</h2>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                    <!-- Tarjeta para Gestión de Clientes -->
+                    <button id="nav-to-clients" class="p-6 bg-red-100 rounded-xl shadow-lg hover:shadow-2xl transition-all duration-300 transform hover:scale-[1.02] border-b-4 border-red-500 text-left">
+                        <i class="fas fa-users text-4xl text-red-600 mb-3"></i>
+                        <h3 class="text-xl font-bold text-gray-800 mb-1">Gestionar Clientes (CRUD)</h3>
+                        <p class="text-sm text-gray-600">Crear, editar y eliminar propietarios de mascotas.</p>
+                    </button>
+                    <!-- Tarjeta para Gestión de Mascotas (Admin) -->
+                    <button id="nav-to-admin-pets" class="p-6 bg-indigo-100 rounded-xl shadow-lg hover:shadow-2xl transition-all duration-300 transform hover:scale-[1.02] border-b-4 border-indigo-500 text-left">
+                        <i class="fas fa-paw text-4xl text-indigo-600 mb-3"></i>
+                        <h3 class="text-xl font-bold text-gray-800 mb-1">Gestionar Mascotas</h3>
+                        <p class="text-sm text-gray-600">Ver todas las mascotas registradas en la clínica.</p>
+                    </button>
                 </div>
+            </section>
 
+            <!-- 5. VISTA DE ADMINISTRADOR - GESTIÓN DE CLIENTES -->
+            <section id="view-admin-clients" class="view hidden">
+                <button id="back-to-admin-dashboard-from-clients" class="flex items-center text-sm font-medium text-indigo-600 hover:text-indigo-800 transition-colors mb-4">
+                    <i class="fas fa-arrow-left mr-2"></i> Volver al Panel Principal
+                </button>
+
+                <h3 class="text-xl font-semibold mb-4 text-red-700">Panel de Administración: Gestión de Clientes</h3>
+                <div id="clients-list-container" class="space-y-4 overflow-y-scroll max-h-[600px] p-2 bg-white rounded-lg shadow-inner border border-red-200">
+                    <p class="text-gray-500 text-center py-8">Cargando clientes...</p>
+                </div>
+                <div id="admin-client-message" class="text-center mt-4 font-medium"></div>
+            </section>
+
+             <!-- 6. VISTA DE ADMINISTRADOR - GESTIÓN DE MASCOTAS (CRUD Implementado) -->
+            <section id="view-admin-pets" class="view hidden">
+                <button id="back-to-admin-dashboard-from-pets" class="flex items-center text-sm font-medium text-indigo-600 hover:text-indigo-800 transition-colors mb-4">
+                    <i class="fas fa-arrow-left mr-2"></i> Volver al Panel Principal
+                </button>
+
+                <h3 class="text-xl font-semibold mb-4 text-indigo-700">Panel de Administración: Gestión General de Mascotas</h3>
+                
+                <div id="all-pets-list-container" class="space-y-4 overflow-y-scroll max-h-[600px] p-2 bg-white rounded-lg shadow-inner border border-indigo-200">
+                    <p class="text-gray-500 text-center py-8">Cargando todas las mascotas...</p>
+                </div>
+                <div id="admin-pet-message" class="text-center mt-4 font-medium"></div>
             </section>
 
         </main>

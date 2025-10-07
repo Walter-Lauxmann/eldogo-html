@@ -110,6 +110,15 @@ export class VeterinariaAPI {
     }
 
     /**
+     * Llama al endpoint para listar las mascotas.
+     * @returns {Promise<Object>}
+     */
+    static async listAllPets() {
+        // En este caso, el ID del cliente se pasa como query parameter para el GET
+        return await VeterinariaAPI._call(`pets/list`, 'GET');
+    }
+
+    /**
      * Llama al endpoint para listar las mascotas de un cliente.
      * @param {number} clientId ID del cliente.
      * @returns {Promise<Object>}

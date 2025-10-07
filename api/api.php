@@ -302,13 +302,12 @@ function handlePetsAdd($data) {
 }
 
 function handlePetsList($data) {
-    if (!isset($data['client_id'])) {
-        return ['success' => false, 'message' => 'ID de cliente es obligatorio.'];
-    }
-
     $mascotaModel = new Modelo('mascotas');
-    // Filtra por el ID del cliente
-    $mascotaModel->setCriterio("clientes_id='" . (int)$data['client_id'] . "'"); 
+    if (isset($data['client_id'])) {
+        // Filtra por el ID del cliente
+        $mascotaModel->setCriterio("clientes_id='" . (int)$data['client_id'] . "'"); 
+    }    
+    
     $pets = json_decode($mascotaModel->seleccionar(), true);
     
     return [
