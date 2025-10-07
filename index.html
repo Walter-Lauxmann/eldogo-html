@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Veterinaria El Dogo - Gestión</title>
+    <!-- Carga de Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Iconos (aunque no se usan directamente, es útil para el futuro) -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        /* Estilos para el scrollbar */
+        .overflow-y-scroll::-webkit-scrollbar { width: 8px; }
+        .overflow-y-scroll::-webkit-scrollbar-thumb { background-color: #6366f1; border-radius: 20px; }
+        .overflow-y-scroll::-webkit-scrollbar-track { background-color: #e5e7eb; }
+    </style>
+</head>
+<body class="bg-gray-100 min-h-screen flex items-center justify-center p-4">
+
+    <!-- Contenedor Principal de la Aplicación -->
+    <div id="app-container" class="w-full max-w-4xl bg-white rounded-xl shadow-2xl overflow-hidden">
+        
+        <!-- Barra de Navegación/Encabezado -->
+        <header class="bg-indigo-600 p-4 text-white flex justify-between items-center">
+            <h1 class="text-2xl font-bold">🐾 El Dogo Veterinaria</h1>
+            <nav>
+                <button id="nav-logout" class="hidden bg-red-500 hover:bg-red-600 px-3 py-1 rounded-full text-sm font-semibold transition duration-300">
+                    Cerrar Sesión
+                </button>
+            </nav>
+        </header>
+
+        <!-- Área de Vistas (Secciones) -->
+        <main class="p-6">
+
+            <!-- 1. Vista de Login -->
+            <section id="view-login" class="view space-y-4">
+                <h2 class="text-3xl font-bold text-gray-800 mb-6 text-center">Iniciar Sesión</h2>
+                <form id="form-login" class="max-w-md mx-auto space-y-4">
+                    <input type="email" id="login-email" placeholder="Correo Electrónico" required 
+                           class="w-full p-3 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500">
+                    <input type="password" id="login-password" placeholder="Contraseña" required 
+                           class="w-full p-3 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500">
+                    <button type="submit" class="w-full bg-indigo-600 text-white font-bold p-3 rounded-lg hover:bg-indigo-700 transition duration-300 shadow-md">
+                        Entrar
+                    </button>
+                    <p class="text-center text-sm text-gray-600 mt-4">
+                        ¿No tienes cuenta? 
+                        <a href="#" id="link-to-register" class="text-indigo-600 font-semibold hover:underline">Regístrate aquí</a>.
+                    </p>
+                </form>
+                <div id="login-message" class="text-center text-red-500 mt-4 font-medium"></div>
+            </section>
+
+            <!-- 2. Vista de Registro -->
+            <section id="view-register" class="view hidden space-y-4">
+                <h2 class="text-3xl font-bold text-gray-800 mb-6 text-center">Registro de Cliente</h2>
+                <form id="form-register" class="max-w-lg mx-auto grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <!-- Columna 1 -->
+                    <input type="text" name="nombre" placeholder="Nombre" required 
+                           class="p-3 border rounded-lg focus:ring-indigo-500 focus:border-indigo-500">
+                    <input type="text" name="apellido" placeholder="Apellido" required 
+                           class="p-3 border rounded-lg focus:ring-indigo-500 focus:border-indigo-500">
+                    
+                    <!-- Columna 2 -->
+                    <input type="text" name="documento" placeholder="DNI/Documento" required 
+                           class="p-3 border rounded-lg focus:ring-indigo-500 focus:border-indigo-500">
+                    <input type="text" name="telefono" placeholder="Teléfono" required 
+                           class="p-3 border rounded-lg focus:ring-indigo-500 focus:border-indigo-500">
+
+                    <!-- Fila Completa -->
+                    <input type="email" name="email" placeholder="Correo Electrónico" required 
+                           class="p-3 border rounded-lg focus:ring-indigo-500 focus:border-indigo-500 md:col-span-2">
+                    <input type="password" name="password" placeholder="Contraseña" required 
+                           class="p-3 border rounded-lg focus:ring-indigo-500 focus:border-indigo-500 md:col-span-2">
+
+                    <button type="submit" class="md:col-span-2 bg-green-600 text-white font-bold p-3 rounded-lg hover:bg-green-700 transition duration-300 shadow-md">
+                        Registrarme
+                    </button>
+                    <p class="text-center text-sm text-gray-600 mt-4 md:col-span-2">
+                        <a href="#" id="link-to-login" class="text-indigo-600 font-semibold hover:underline">Volver a Iniciar Sesión</a>.
+                    </p>
+                </form>
+                <div id="register-message" class="text-center mt-4 font-medium"></div>
+            </section>
+
+            <!-- 3. Vista del Dashboard (Mascotas) -->
+            <section id="view-dashboard" class="view hidden">
+                <h2 id="welcome-message" class="text-2xl font-bold text-gray-800 mb-6">Bienvenido, [Cliente]</h2>
+                
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    
+                    <!-- Formulario para Agregar Mascota (Columna 1) -->
+                    <div class="lg:col-span-1 bg-gray-50 p-4 rounded-xl shadow-lg h-fit">
+                        <h3 class="text-xl font-semibold mb-4 text-indigo-700">Registrar Nueva Mascota</h3>
+                        <form id="form-add-pet" class="space-y-3">
+                            <input type="text" name="nombre" placeholder="Nombre de la Mascota" required 
+                                class="w-full p-2 border rounded-md focus:ring-indigo-500 focus:border-indigo-500">
+                            <input type="text" name="especie" placeholder="Especie (Ej: Canino, Felino)" required 
+                                class="w-full p-2 border rounded-md focus:ring-indigo-500 focus:border-indigo-500">
+                            <input type="text" name="raza" placeholder="Raza" required 
+                                class="w-full p-2 border rounded-md focus:ring-indigo-500 focus:border-indigo-500">
+                            <input type="text" name="foto" placeholder="URL o Nombre de Archivo de Foto (Opcional)"
+                                class="w-full p-2 border rounded-md focus:ring-indigo-500 focus:border-indigo-500">
+                            <textarea name="historia_clinica" placeholder="Historia Clínica Inicial (Opcional)" rows="3"
+                                class="w-full p-2 border rounded-md focus:ring-indigo-500 focus:border-indigo-500"></textarea>
+                            
+                            <button type="submit" class="w-full bg-indigo-600 text-white font-bold p-3 rounded-lg hover:bg-indigo-700 transition duration-300 shadow-md">
+                                Registrar Mascota
+                            </button>
+                        </form>
+                        <div id="pet-add-message" class="text-center mt-3 text-sm font-medium"></div>
+                    </div>
+
+                    <!-- Listado de Mascotas (Columnas 2 y 3) -->
+                    <div class="lg:col-span-2">
+                        <h3 class="text-xl font-semibold mb-4 text-indigo-700">Mis Mascotas</h3>
+                        <div id="pets-list-container" class="space-y-4 overflow-y-scroll max-h-96 p-2">
+                            <!-- Aquí se insertarán las tarjetas de mascotas -->
+                            <p class="text-gray-500 text-center py-8" id="no-pets-message">Cargando mascotas...</p>
+                        </div>
+                    </div>
+
+                </div>
+            </section>
+
+        </main>
+    </div>
+
+    <!-- Importamos el controlador para inicializar la aplicación como un módulo -->
+    <script type="module" src="./controllers/controllers.js"></script>
+</body>
+</html>
