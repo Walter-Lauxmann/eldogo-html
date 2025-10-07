@@ -136,4 +136,32 @@ export class VeterinariaAPI {
     static async deletePet(petId) {
         return await VeterinariaAPI._call('pets/delete', 'DELETE', { id: petId });
     }
+    
+    // --- Métodos de Clientes (CRUD de Administrador) ---
+
+    /**
+     * Llama al endpoint para listar todos los clientes.
+     * @returns {Promise<Object>}
+     */
+    static async listClients() {
+        return await VeterinariaAPI._call('clients/list', 'GET');
+    }
+    
+    /**
+     * Llama al endpoint para actualizar un cliente.
+     * @param {Object} data Datos del cliente, incluyendo el 'id'.
+     * @returns {Promise<Object>}
+     */
+    static async updateClient(data) {
+        return await VeterinariaAPI._call('clients/update', 'PUT', data);
+    }
+    
+    /**
+     * Llama al endpoint para eliminar un cliente.
+     * @param {number} clientId ID del cliente a eliminar.
+     * @returns {Promise<Object>}
+     */
+    static async deleteClient(clientId) {
+        return await VeterinariaAPI._call('clients/delete', 'DELETE', { id: clientId });
+    }
 }

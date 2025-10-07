@@ -222,6 +222,7 @@ function handleAuthRegister($data) {
         'email' => $data['email'],
         'usuario' => $data['email'], 
         'password' => $hashedPassword, // Guardar la contraseña hasheada
+        'rol' => 'client', // NUEVO: Definir rol por defecto al registrar
     ];
 
     $id = $clienteModel->insertar((object)$insertData); 
@@ -241,6 +242,8 @@ function handleAuthLogin($data) {
     $clienteModel = new Modelo('clientes');
     
     // Buscar usuario por email
+    // Aseguramos obtener el rol del usuario
+    $clienteModel->setCampos('id, nombre, email, password, rol'); 
     $clienteModel->setCriterio("email='{$data['email']}'");
     $clienteModel->setLimite(1);
     $result = json_decode($clienteModel->seleccionar(), true);
@@ -253,7 +256,8 @@ function handleAuthLogin($data) {
 
     // Verificar contraseña hasheada
     if (password_verify($data['password'], $user['password'])) {
-        $role = ($user['email'] === ADMIN_EMAIL) ? 'admin' : 'client';
+        // Si el email coincide con el admin fijo, sobreescribir por seguridad
+        $role = ($user['email'] === ADMIN_EMAIL) ? 'admin' : ($user['rol'] ?? 'client'); 
         return [
             'success' => true,
             'user' => [
@@ -267,6 +271,9 @@ function handleAuthLogin($data) {
         return ['success' => false, 'message' => 'Credenciales incorrectas.'];
     }
 }
+
+
+// --- Lógica de CRUD de Mascotas (Pets) ---
 
 function handlePetsAdd($data) {
     if (!isset($data['clientes_id'], $data['nombre'], $data['especie'], $data['raza'])) {
@@ -318,23 +325,18 @@ function handlePetsUpdate($data) {
     $mascotaModel = new Modelo('mascotas');
     $mascotaId = (int)$data['id'];
     
-    // 1. Establecer el criterio WHERE
     $mascotaModel->setCriterio("id='{$mascotaId}'");
-    
-    // 2. Eliminar el ID de los datos a actualizar para que no se incluya en el SET
     unset($data['id']);
     
     if (empty($data)) {
         return ['success' => false, 'message' => 'No se enviaron campos para actualizar.'];
     }
     
-    // 3. Ejecutar la actualización
     $updated = $mascotaModel->actualizar($data);
     
     if ($updated) {
         return ['success' => true, 'message' => 'Mascota actualizada correctamente.'];
     } else {
-        // Puede fallar si no existe el ID o si los datos no cambiaron (0 filas afectadas)
         return ['success' => false, 'message' => 'Error al actualizar la mascota o el registro no fue encontrado.'];
     }
 }
@@ -347,16 +349,80 @@ function handlePetsDelete($data) {
     $mascotaModel = new Modelo('mascotas');
     $mascotaId = (int)$data['id'];
     
-    // 1. Establecer el criterio WHERE
     $mascotaModel->setCriterio("id='{$mascotaId}'");
-    
-    // 2. Ejecutar la eliminación
     $deleted = $mascotaModel->eliminar();
 
     if ($deleted) {
         return ['success' => true, 'message' => 'Mascota eliminada correctamente.'];
     } else {
         return ['success' => false, 'message' => 'Error al eliminar la mascota o no se encontró el registro.'];
+    }
+}
+
+// --- Lógica de CRUD de Clientes (Clients) - Nuevo para Admin ---
+
+function handleClientsList($data) {
+    $clienteModel = new Modelo('clientes');
+    // Campos sensibles que se requieren en el front para edición
+    $clienteModel->setCampos('id, nombre, apellido, documento, direccion, localidad, telefono, email, usuario, foto, rol');
+    $clients = json_decode($clienteModel->seleccionar(), true);
+    
+    // Opcional: Remover la contraseña si la hubiéramos traído.
+    
+    return [
+        'success' => true,
+        'clients' => $clients
+    ];
+}
+
+function handleClientsUpdate($data) {
+    if (!isset($data['id'])) {
+        return ['success' => false, 'message' => 'ID de cliente es obligatorio para la actualización.'];
+    }
+    
+    $clienteModel = new Modelo('clientes');
+    $clienteId = (int)$data['id'];
+    
+    $clienteModel->setCriterio("id='{$clienteId}'");
+    
+    // Manejar la contraseña si se actualiza (debe ser hasheada)
+    if (isset($data['password']) && !empty($data['password'])) {
+        $data['password'] = password_hash($data['password'], PASSWORD_DEFAULT);
+    } else {
+        unset($data['password']); // No actualizar si está vacío
+    }
+    
+    unset($data['id']);
+    
+    if (empty($data)) {
+        return ['success' => false, 'message' => 'No se enviaron campos para actualizar.'];
+    }
+    
+    $updated = $clienteModel->actualizar($data);
+    
+    if ($updated) {
+        return ['success' => true, 'message' => 'Cliente actualizado correctamente.'];
+    } else {
+        return ['success' => false, 'message' => 'Error al actualizar el cliente o el registro no fue encontrado.'];
+    }
+}
+
+function handleClientsDelete($data) {
+    if (!isset($data['id'])) {
+        return ['success' => false, 'message' => 'ID de cliente es obligatorio para la eliminación.'];
+    }
+    
+    $clienteModel = new Modelo('clientes');
+    $clienteId = (int)$data['id'];
+    
+    $clienteModel->setCriterio("id='{$clienteId}'");
+    $deleted = $clienteModel->eliminar();
+
+    if ($deleted) {
+        // Opcional: Implementar lógica para eliminar mascotas asociadas aquí.
+        return ['success' => true, 'message' => 'Cliente eliminado correctamente.'];
+    } else {
+        return ['success' => false, 'message' => 'Error al eliminar el cliente o no se encontró el registro.'];
     }
 }
 
@@ -392,7 +458,20 @@ if ($parts[0] === 'auth') {
     } else {
         http_response_code(405);
     }
-} 
+} elseif ($parts[0] === 'clients') { // NUEVA RUTA PARA ADMINISTRACIÓN DE CLIENTES
+    if ($parts[1] === 'list' && $method === 'GET') {
+        $response = handleClientsList($inputData);
+        http_response_code(200);
+    } elseif ($parts[1] === 'update' && $method === 'PUT') {
+        $response = handleClientsUpdate($inputData);
+        http_response_code(200);
+    } elseif ($parts[1] === 'delete' && $method === 'DELETE') {
+        $response = handleClientsDelete($inputData);
+        http_response_code(200);
+    } else {
+        http_response_code(405);
+    }
+}
 // Para otras rutas, se extendería este router...
 else {
     http_response_code(404);

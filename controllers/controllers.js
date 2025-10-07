@@ -13,26 +13,30 @@ const formLogin = document.getElementById('form-login');
 const formRegister = document.getElementById('form-register');
 const formAddPet = document.getElementById('form-add-pet');
 const navLogout = document.getElementById('nav-logout');
-const petListContainer = document.getElementById('pets-list-container');
 const welcomeMessage = document.getElementById('welcome-message');
 const loginMessage = document.getElementById('login-message');
 const registerMessage = document.getElementById('register-message');
-const petAddMessage = document.getElementById('pet-add-message');
+
 const linkToRegister = document.getElementById('link-to-register');
 const linkToLogin = document.getElementById('link-to-login');
 
-// Modal y sus elementos
-const modalOverlay = createModalOverlay();
-const formEditPet = modalOverlay.querySelector('#form-edit-pet');
-const editPetId = modalOverlay.querySelector('#edit-pet-id');
-const editMessage = modalOverlay.querySelector('#edit-message');
+// Elementos de la vista Cliente
+const petListContainer = document.getElementById('pets-list-container');
+const petAddMessage = document.getElementById('pet-add-message');
+const clientViewContent = document.getElementById('client-view-content');
 
-// Variable para guardar el listado de mascotas en memoria
+// Elementos de la vista Administrador (NUEVOS)
+const adminViewContent = document.getElementById('admin-view-content');
+const clientsListContainer = document.getElementById('clients-list-container');
+
+
+// Variable para guardar listas en memoria
 let currentPets = [];
+let currentClients = [];
 
-// --- Funciones de Utilidad y UI ---
+// --- Funciones de Utilidad y UI (Modales) ---
 
-/** Crea y adjunta el modal de edición al cuerpo del documento */
+/** Crea y adjunta el modal de edición de Mascota al cuerpo del documento */
 function createModalOverlay() {
     const overlay = document.createElement('div');
     overlay.id = 'edit-modal-overlay';
@@ -76,6 +80,67 @@ function createModalOverlay() {
     return overlay;
 }
 
+/** Crea y adjunta el modal de edición de Cliente al cuerpo del documento (NUEVO) */
+function createClientModalOverlay() {
+    const overlay = document.createElement('div');
+    overlay.id = 'edit-client-modal-overlay';
+    overlay.className = 'fixed inset-0 bg-red-900 bg-opacity-75 z-50 hidden flex items-center justify-center'; 
+    overlay.innerHTML = `
+        <div class="bg-white p-6 rounded-xl shadow-2xl w-full max-w-lg m-4">
+            <h3 class="text-2xl font-bold text-red-700 mb-4">Editar Cliente (Admin)</h3>
+            <form id="form-edit-client" class="max-w-lg mx-auto grid grid-cols-1 md:grid-cols-2 gap-4">
+                <input type="hidden" id="edit-client-id" name="id">
+                <input type="text" name="nombre" placeholder="Nombre" required 
+                       class="p-3 border rounded-lg focus:ring-red-500 focus:border-red-500">
+                <input type="text" name="apellido" placeholder="Apellido" required 
+                       class="p-3 border rounded-lg focus:ring-red-500 focus:border-red-500">
+                <input type="text" name="documento" placeholder="DNI/Documento" required 
+                       class="p-3 border rounded-lg focus:ring-red-500 focus:border-red-500">
+                <input type="text" name="telefono" placeholder="Teléfono" required 
+                       class="p-3 border rounded-lg focus:ring-red-500 focus:border-red-500">
+                <input type="email" name="email" placeholder="Correo Electrónico" required 
+                       class="p-3 border rounded-lg focus:ring-red-500 focus:border-red-500 md:col-span-2">
+                <input type="text" name="rol" placeholder="Rol (client/admin)" required 
+                       class="p-3 border rounded-lg focus:ring-red-500 focus:border-red-500">
+                <input type="password" name="password" placeholder="Nueva Contraseña (dejar vacío para no cambiar)" 
+                       class="p-3 border rounded-lg focus:ring-red-500 focus:border-red-500">
+
+                <div id="client-edit-message" class="text-center mt-3 text-sm font-medium md:col-span-2"></div>
+
+                <div class="flex justify-end space-x-3 mt-4 md:col-span-2">
+                    <button type="button" id="close-client-modal" class="bg-gray-300 text-gray-800 font-semibold p-2 rounded-lg hover:bg-gray-400 transition duration-300">
+                        Cancelar
+                    </button>
+                    <button type="submit" class="bg-red-600 text-white font-bold p-2 rounded-lg hover:bg-red-700 transition duration-300">
+                        Guardar Cambios
+                    </button>
+                </div>
+            </form>
+        </div>
+    `;
+    document.body.appendChild(overlay);
+    
+    // Listener para cerrar el modal
+    overlay.querySelector('#close-client-modal').addEventListener('click', () => {
+        overlay.classList.add('hidden');
+    });
+    
+    return overlay;
+}
+
+// Inicialización de Modales (Mascotas)
+const modalOverlay = createModalOverlay();
+const formEditPet = modalOverlay.querySelector('#form-edit-pet');
+const editPetId = modalOverlay.querySelector('#edit-pet-id');
+const editMessage = modalOverlay.querySelector('#edit-message');
+
+// Inicialización de Modales (Clientes Admin)
+const clientModalOverlay = createClientModalOverlay();
+const formEditClient = clientModalOverlay.querySelector('#form-edit-client');
+const editClientId = clientModalOverlay.querySelector('#edit-client-id');
+const clientEditMessage = clientModalOverlay.querySelector('#client-edit-message');
+
+
 /**
  * Muestra solo la vista especificada y oculta las demás.
  * @param {string} viewName Nombre de la vista ('login', 'register', 'dashboard').
@@ -115,7 +180,7 @@ function displayMessage(element, message, type) {
 // --- Lógica del Dashboard y Mascota ---
 
 /**
- * Abre el modal de edición y precarga los datos de la mascota.
+ * Abre el modal de edición de Mascota y precarga los datos.
  * @param {number} petId ID de la mascota a editar.
  */
 function openEditModal(petId) {
@@ -215,8 +280,123 @@ async function loadPets() {
     }
 }
 
+// --- Lógica del Dashboard Admin (NUEVO) ---
 
-// --- Manejadores de Eventos ---
+/**
+ * Abre el modal de edición de Cliente y precarga los datos.
+ * @param {number} clientId ID del cliente a editar.
+ */
+function openClientEditModal(clientId) {
+    const client = currentClients.find(c => c.id == clientId);
+    if (!client) {
+        displayMessage(clientEditMessage, 'Cliente no encontrado.', 'error');
+        return;
+    }
+
+    // Precargar datos en el formulario del modal
+    editClientId.value = client.id;
+    formEditClient.querySelector('input[name="nombre"]').value = client.nombre;
+    formEditClient.querySelector('input[name="apellido"]').value = client.apellido;
+    formEditClient.querySelector('input[name="documento"]').value = client.documento;
+    formEditClient.querySelector('input[name="telefono"]').value = client.telefono;
+    formEditClient.querySelector('input[name="email"]').value = client.email;
+    formEditClient.querySelector('input[name="rol"]').value = client.rol;
+    formEditClient.querySelector('input[name="password"]').value = ''; // La contraseña nunca se precarga
+
+    // Limpiar mensaje previo
+    clientEditMessage.textContent = '';
+
+    // Mostrar modal
+    clientModalOverlay.classList.remove('hidden');
+}
+
+/**
+ * Renderiza la lista de clientes en el contenedor (solo Admin).
+ * @param {Array<Object>} clients Array de objetos cliente.
+ */
+function renderClientList(clients) {
+    currentClients = clients; // Guardamos la lista actual
+    clientsListContainer.innerHTML = '';
+    
+    if (!clients || clients.length === 0) {
+        clientsListContainer.innerHTML = '<p class="text-gray-500 text-center py-8">No hay clientes registrados.</p>';
+        return;
+    }
+
+    clients.forEach(client => {
+        const clientCard = document.createElement('div');
+        clientCard.className = 'bg-white border border-red-300 p-4 rounded-xl shadow-md flex justify-between items-center space-x-4';
+        
+        clientCard.innerHTML = `
+            <div class="flex items-center space-x-4">
+                <div class="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center text-red-600 text-2xl">
+                    <i class="fas fa-user-circle"></i>
+                </div>
+                <div>
+                    <h4 class="text-lg font-bold text-gray-800">${client.nombre} ${client.apellido}</h4>
+                    <p class="text-sm text-gray-600">Email: ${client.email} | Rol: <span class="font-semibold text-red-600">${client.rol}</span></p>
+                    <p class="text-xs text-gray-500 mt-1">ID: ${client.id} | DNI: ${client.documento}</p>
+                </div>
+            </div>
+            <div class="flex space-x-2">
+                <button data-id="${client.id}" class="edit-client-btn bg-yellow-500 text-white text-sm px-3 py-1 rounded-full hover:bg-yellow-600 transition duration-300">
+                    Editar
+                </button>
+                <button data-id="${client.id}" data-name="${client.nombre}" class="delete-client-btn bg-red-500 text-white text-sm px-3 py-1 rounded-full hover:bg-red-600 transition duration-300">
+                    Eliminar
+                </button>
+            </div>
+        `;
+        clientsListContainer.appendChild(clientCard);
+    });
+    
+    // Añadir listeners a los nuevos botones
+    document.querySelectorAll('.edit-client-btn').forEach(button => {
+        button.addEventListener('click', (e) => {
+            openClientEditModal(e.currentTarget.dataset.id);
+        });
+    });
+    document.querySelectorAll('.delete-client-btn').forEach(button => {
+        button.addEventListener('click', (e) => {
+            handleDeleteClient(e.currentTarget.dataset.id, e.currentTarget.dataset.name);
+        });
+    });
+}
+
+/**
+ * Carga y muestra la lista de clientes (solo Admin).
+ */
+async function loadClients() {
+    clientsListContainer.innerHTML = '<p class="text-center text-red-600 py-8">Cargando clientes...</p>';
+
+    const result = await VeterinariaAPI.listClients();
+    if (result.success) {
+        renderClientList(result.clients);
+    } else {
+        clientsListContainer.innerHTML = `<p class="text-red-500 text-center py-8">Error al cargar clientes: ${result.message}</p>`;
+    }
+}
+
+/**
+ * Muestra el dashboard adecuado según el rol del usuario.
+ */
+function renderDashboard() {
+    const user = VeterinariaAPI.getSession();
+    if (!user) return; // Esto no debería pasar si llegamos aquí
+
+    if (user.role === 'admin') {
+        clientViewContent.classList.add('hidden');
+        adminViewContent.classList.remove('hidden');
+        loadClients();
+    } else {
+        clientViewContent.classList.remove('hidden');
+        adminViewContent.classList.add('hidden');
+        loadPets();
+    }
+}
+
+
+// --- Manejadores de Eventos de Autenticación y Mascota (CRUD) ---
 
 /**
  * Maneja el envío del formulario de Login.
@@ -267,8 +447,8 @@ async function handleAddPet(event) {
     petAddMessage.textContent = 'Registrando mascota...';
     
     const user = VeterinariaAPI.getSession();
-    if (!user) {
-        displayMessage(petAddMessage, 'Error: No hay sesión activa.', 'error');
+    if (!user || user.role === 'admin') { // Proteger contra admin intentando agregar
+        displayMessage(petAddMessage, 'Error: Permiso denegado.', 'error');
         return;
     }
 
@@ -297,10 +477,8 @@ async function handleEditPet(event) {
     editMessage.textContent = 'Guardando cambios...';
 
     const formData = new FormData(formEditPet);
-    // Convertir FormData a un objeto plano
     const data = Object.fromEntries(formData.entries());
 
-    // El ID ya está incluido en 'data' gracias al campo hidden
     const result = await VeterinariaAPI.updatePet(data);
 
     if (result.success) {
@@ -316,7 +494,6 @@ async function handleEditPet(event) {
  * Maneja la eliminación de una mascota.
  */
 async function handleDeletePet(petId, petName) {
-    // Usamos una confirmación simple (reemplazar con un modal custom si es necesario)
     if (!confirm(`¿Estás seguro de que quieres eliminar a ${petName} (ID: ${petId})? Esta acción es irreversible.`)) {
         return;
     }
@@ -330,6 +507,50 @@ async function handleDeletePet(petId, petName) {
         loadPets(); // Recargar la lista
     } else {
         displayMessage(petAddMessage, `Error al eliminar a ${petName}: ${result.message}`, 'error');
+    }
+}
+
+// --- Manejadores de Eventos de Cliente (CRUD de Administrador) ---
+
+/**
+ * Maneja el envío del formulario de Edición de Cliente.
+ */
+async function handleEditClient(event) {
+    event.preventDefault();
+    clientEditMessage.textContent = 'Guardando cambios...';
+
+    const formData = new FormData(formEditClient);
+    const data = Object.fromEntries(formData.entries());
+
+    const result = await VeterinariaAPI.updateClient(data);
+
+    if (result.success) {
+        displayMessage(clientEditMessage, 'Cambios guardados correctamente.', 'success');
+        renderDashboard(); // Recargar la lista de clientes
+        setTimeout(() => clientModalOverlay.classList.add('hidden'), 1000);
+    } else {
+        displayMessage(clientEditMessage, result.message, 'error');
+    }
+}
+
+/**
+ * Maneja la eliminación de un cliente.
+ */
+async function handleDeleteClient(clientId, clientName) {
+    // Usamos el mensaje de edición de cliente como contenedor de mensajes de admin
+    if (!confirm(`[ADMIN] ¿Estás seguro de que quieres eliminar al cliente ${clientName} (ID: ${clientId})? Esto eliminará sus datos.`)) {
+        return;
+    }
+    
+    clientEditMessage.textContent = `Eliminando al cliente ${clientName}...`;
+
+    const result = await VeterinariaAPI.deleteClient(clientId);
+
+    if (result.success) {
+        displayMessage(clientEditMessage, `Cliente ${clientName} eliminado correctamente.`, 'success');
+        renderDashboard(); // Recargar la lista
+    } else {
+        displayMessage(clientEditMessage, `Error al eliminar al cliente ${clientName}: ${result.message}`, 'error');
     }
 }
 
@@ -352,9 +573,9 @@ function initializeApp() {
 
     if (user) {
         // Usuario logueado
-        welcomeMessage.textContent = `Bienvenido(a), ${user.nombre}.`;
+        welcomeMessage.textContent = `Bienvenido(a) ${user.nombre}${user.role === 'admin' ? ' (ADMIN)' : ''}.`;
         showView('dashboard');
-        loadPets();
+        renderDashboard(); // Usa la nueva función que distingue por rol
     } else {
         // No hay sesión
         showView('login');
@@ -378,9 +599,12 @@ linkToLogin.addEventListener('click', (e) => {
     showView('login');
 });
 
-// Dashboard (Agregar y Editar)
+// Dashboard (Mascotas CRUD)
 formAddPet.addEventListener('submit', handleAddPet);
-formEditPet.addEventListener('submit', handleEditPet); // Listener para el formulario dentro del modal
+formEditPet.addEventListener('submit', handleEditPet); 
+
+// Dashboard (Clientes CRUD - Admin)
+formEditClient.addEventListener('submit', handleEditClient); // Listener para el formulario de edición de clientes
 
 // Iniciar la aplicación al cargar el módulo
 initializeApp();
